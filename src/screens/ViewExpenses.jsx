@@ -1,10 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import {
-  View,
-  Text,
-  FlatList,
-  StyleSheet,
-} from 'react-native';
+import { View, Text, FlatList, StyleSheet } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const ViewExpenses = () => {
@@ -20,20 +15,11 @@ const ViewExpenses = () => {
       if (storedExpenses) {
         const allExpenses = JSON.parse(storedExpenses);
         const today = new Date();
-        const currentMonth = today.getMonth(); // 0-indexed: Jan=0
+        const currentMonth = today.getMonth(); 
         const currentYear = today.getFullYear();
 
-        const filteredExpenses = allExpenses.filter((expense) => {
-          const [year, month, day] = expense.date.split('-').map(Number);
-          // Note: month - 1 since JavaScript Date months are 0-indexed
-          const expenseDate = new Date(year, month - 1, day);
-          return (
-            expenseDate.getMonth() === currentMonth &&
-            expenseDate.getFullYear() === currentYear
-          );
-        });
-
-        setExpenses(filteredExpenses);
+       
+        setExpenses(allExpenses);
       }
     } catch (error) {
       console.error('Failed to fetch expenses:', error);
@@ -42,7 +28,7 @@ const ViewExpenses = () => {
 
   return (
     <View style={styles.container}>
-      <Text style={styles.header}>This Month's Expenses</Text>
+      <Text style={styles.header}>Your Expenses</Text>
       {expenses.length === 0 ? (
         <Text style={styles.noExpenses}>No expenses added this month.</Text>
       ) : (
@@ -52,15 +38,9 @@ const ViewExpenses = () => {
           renderItem={({ item }) => (
             <View style={styles.expenseItem}>
               <Text style={styles.expenseName}>{item.name}</Text>
-              <Text style={styles.expenseDetails}>
-                Category: {item.category}
-              </Text>
-              <Text style={styles.expenseDetails}>
-                Amount: ₹{item.amount.toFixed(2)}
-              </Text>
-              <Text style={styles.expenseDetails}>
-                Date: {item.date}
-              </Text>
+              <Text style={styles.expenseDetails}>Amount: ₹{(typeof item.amount === 'number' ? item.amount : 0).toFixed(2)}</Text>
+              <Text style={styles.expenseDetails}>Category: {item.category}</Text>
+              <Text style={styles.expenseDetails}>Date: {item.date}</Text>
             </View>
           )}
         />

@@ -1,6 +1,16 @@
-import React, { useState } from 'react';
-import { View, Text, StyleSheet, FlatList, TouchableOpacity, TextInput, Alert, Button } from 'react-native';
-import { useNavigation } from '@react-navigation/native';  // ⬅️ import this hook
+import React, { useState, useEffect } from 'react';
+import {
+  View,
+  Text,
+  StyleSheet,
+  FlatList,
+  TouchableOpacity,
+  TextInput,
+  Alert,
+  Button,
+} from 'react-native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { useNavigation } from '@react-navigation/native';
 
 const AddExpenses = () => {
   const [expenses, setExpenses] = useState([]);
@@ -9,13 +19,28 @@ const AddExpenses = () => {
   const [date, setDate] = useState('');
   const [amount, setAmount] = useState('');
 
-  const navigation = useNavigation();  // ⬅️ initialize navigation
+  const navigation = useNavigation();
 
-  const addExpense = () => {
+  useEffect(() => {
+    const loadExpenses = async () => {
+      try {
+        const storedExpenses = await AsyncStorage.getItem('expenses');
+        if (storedExpenses) {
+          setExpenses(JSON.parse(storedExpenses));
+        }
+      } catch (error) {
+        console.error('Error loading expenses:', error);
+      }
+    };
+    loadExpenses();
+  }, []);
+
+  const addExpense = async () => {
     if (!name || !category || !date || !amount) {
       Alert.alert('Error', 'Please fill all fields');
       return;
     }
+
     const newExpense = {
       id: Date.now().toString(),
       name,
@@ -23,18 +48,37 @@ const AddExpenses = () => {
       date,
       amount: parseFloat(amount),
     };
-    setExpenses([...expenses, newExpense]);
+
+    const updatedExpenses = [...expenses, newExpense];
+    setExpenses(updatedExpenses);
+
+    try {
+      await AsyncStorage.setItem('expenses', JSON.stringify(updatedExpenses));
+    } catch (error) {
+      console.error('Error saving expenses:', error);
+    }
+
     setName('');
     setCategory('');
     setDate('');
     setAmount('');
   };
 
-  const deleteExpense = (id) => {
-    setExpenses(expenses.filter(expense => expense.id !== id));
+  const deleteExpense = async (id) => {
+    const updatedExpenses = expenses.filter((expense) => expense.id !== id);
+    setExpenses(updatedExpenses);
+
+    try {
+      await AsyncStorage.setItem('expenses', JSON.stringify(updatedExpenses));
+    } catch (error) {
+      console.error('Error deleting expense:', error);
+    }
   };
 
-  const totalExpenditure = expenses.reduce((total, item) => total + item.amount, 0);
+  const totalExpenditure = expenses.reduce(
+    (total, item) => total + (typeof item.amount === 'number' ? item.amount : 0),
+    0
+  );
 
   return (
     <View style={styles.container}>
@@ -65,7 +109,7 @@ const AddExpenses = () => {
         />
         <TextInput
           style={styles.input}
-          placeholder="Date (e.g. 2025-06-01)"
+          placeholder="Date (YYYY-MM-DD)"
           placeholderTextColor="#a78650"
           value={date}
           onChangeText={setDate}
@@ -78,20 +122,21 @@ const AddExpenses = () => {
 
       <Text style={styles.subHeader}>Your Expenses</Text>
       <Text style={styles.totalText}>
-        Total Expenditure: ₹{totalExpenditure.toFixed(2)}
+        Total Expenditure: ₹{(isNaN(totalExpenditure) ? 0 : totalExpenditure).toFixed(2)}
       </Text>
 
       <FlatList
         data={expenses}
-        keyExtractor={item => item.id}
+        keyExtractor={(item) => item.id}
         style={styles.list}
         renderItem={({ item }) => (
           <View style={styles.expenseItem}>
             <View>
               <Text style={styles.expenseName}>{item.name}</Text>
               <Text style={styles.expenseDetails}>
-                ₹{item.amount.toFixed(2)}
+                ₹{(typeof item.amount === 'number' ? item.amount : 0).toFixed(2)}
               </Text>
+          
             </View>
             <TouchableOpacity onPress={() => deleteExpense(item.id)}>
               <Text style={styles.deleteButton}>Delete</Text>
@@ -100,7 +145,6 @@ const AddExpenses = () => {
         )}
       />
 
-      {/* Navigation Button */}
       <View style={styles.navigationBtnContainer}>
         <Button
           title="View Your Expenses"
